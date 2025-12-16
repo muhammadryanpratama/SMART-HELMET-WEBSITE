@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Fleet // Access</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="welcome-page">
+
+  <div class="hero-content">
+    <div class="logo-big">
+      <i class="fa-solid fa-earth-asia"></i>
+    </div>
+    
+    <div class="hero-title">SMART FLEET</div>
+    
+    <div class="typing-container">
+      <span id="typeText"></span><span style="animation:blink 1s infinite">_</span>
+    </div>
+
+    <button class="enter-btn" onclick="enterApp()">
+      INITIALIZE SYSTEM
+    </button>
+  </div>
+
+  <script>
+    const text = "ESTABLISHING SECURE SATELLITE LINK...";
+    const typeEl = document.getElementById('typeText');
+    let i = 0;
+
+    function typeWriter() {
+      if (i < text.length) {
+        typeEl.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typeWriter, 40);
+      }
+    }
+    setTimeout(typeWriter, 500);
+
+    function enterApp() {
+      document.body.style.transition = "opacity 0.8s ease-in-out";
+      document.body.style.opacity = "0";
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+    }
+  </script>
+  <style>@keyframes blink{50%{opacity:0}}</style>
+</body>
+</html>

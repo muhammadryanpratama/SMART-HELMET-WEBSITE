@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Fleet // Access</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="welcome-page">
+
+  <div class="grid-bg"></div>
+
+  <div class="hero-content" id="heroSection">
+    <div class="logo-big"><i class="fa-solid fa-earth-asia"></i></div>
+    <div class="hero-title">SMART FLEET</div>
+    <div style="font-family:'JetBrains Mono'; color:var(--primary); font-size:0.9rem; margin-bottom:20px;">
+      THINGSBOARD SECURE UPLINK
+    </div>
+    
+    <div class="typing-container">
+      <span id="typeText"></span><span style="animation:blink 1s infinite">_</span>
+    </div>
+
+    <button class="enter-btn" onclick="showLogin()">
+      INITIALIZE CONNECTION
+    </button>
+  </div>
+
+  <div class="login-section hidden" id="loginSection">
+    <div class="login-card">
+      <div style="text-align:center; margin-bottom:20px;">
+        <i class="fa-solid fa-satellite-dish" style="font-size:3rem; color:var(--primary);"></i>
+        <h2 style="margin-top:10px; color:white;">AUTHENTICATION</h2>
+      </div>
+      
+      <div class="input-group">
+        <label>SERVER HOST</label>
+        <input type="text" id="tbHost" value="https://demo.thingsboard.io" style="color:var(--text-muted);">
+      </div>
+
+      <div class="input-group">
+        <label>USERNAME (EMAIL)</label>
+        <input type="text" id="username" placeholder="tenant@thingsboard.org" autocomplete="off" autofocus>
+      </div>
+      
+      <div class="input-group">
+        <label>PASSWORD</label>
+        <input type="password" id="password" placeholder="•••••••">
+      </div>
+
+      <button class="enter-btn" style="width:100%; margin-top:10px;" onclick="performLogin()">
+        CONNECT TO SATELLITE
+      </button>
+      
+      <div id="loginStatus" style="color:#ef4444; font-size:0.8rem; text-align:center; margin-top:10px; font-weight:bold; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Animasi Ketik
+    const text = "ESTABLISHING SECURE SATELLITE LINK...";
+    const typeEl = document.getElementById('typeText');
+    let i = 0;
+    function typeWriter() {
+      if (i < text.length) {
+        typeEl.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typeWriter, 40);
+      }
+    }
+    setTimeout(typeWriter, 500);
+
+    // Fungsi Ganti Layar ke Login Form
+    function showLogin() {
+      const hero = document.getElementById('heroSection');
+      const login = document.getElementById('loginSection');
+      
+      hero.style.opacity = '0';
+      hero.style.transform = 'scale(0.9)';
+      
+      setTimeout(() => {
+        hero.style.display = 'none';
+        login.classList.remove('hidden');
+        setTimeout(() => {
+          login.classList.add('active');
+          document.getElementById('username').focus();
+        }, 50);
+      }, 500);
+    }
+
+    // --- LOGIKA LOGIN ASLI KE THINGSBOARD ---
+    async function performLogin() {
+      const host = document.getElementById('tbHost').value.replace(/\/$/, ""); 
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      const btn = document.querySelector('#loginSection .enter-btn');
+      const status = document.getElementById('loginStatus');
+
+      if(!user || !pass) {
+        status.innerText = "⚠️ MISSING CREDENTIALS";
+        return;
+      }
+
+      // Ubah tombol jadi loading
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> AUTHENTICATING...';
+      status.innerText = "";
+
+      try {
+        // Tembak API Login ThingsBoard
+        const response = await fetch(`${host}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // SUKSES! Simpan Token ke Memory Browser
+          localStorage.setItem('tb_token', data.token);
+          
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> ACCESS GRANTED';
+          btn.style.background = '#10b981'; // Hijau
+          btn.style.color = '#000';
+          
+          // Pindah ke Dashboard setelah 1 detik
+          setTimeout(() => {
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+              window.location.href = 'dashboard.html';
+            }, 800);
+          }, 800);
+        } else {
+          throw new Error("Invalid Username or Password");
+        }
+      } catch (e) {
+        console.error(e);
+        btn.innerHTML = 'CONNECT TO SATELLITE';
+        btn.style.background = ''; // Reset warna
+        status.innerText = "❌ LOGIN FAILED: " + e.message;
+      }
+    }
+
+    // Shortcut Enter buat Login
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        // Kalau form login sudah muncul, tekan Enter = Login
+        if (!document.getElementById('loginSection').classList.contains('hidden')) {
+          performLogin();
+        } else {
+          // Kalau masih di halaman awal, tekan Enter = Buka Form Login
+          showLogin();
+        }
+      }
+    });
+  </script>
+
+  <style>
+    @keyframes blink{50%{opacity:0}}
+    
+    .grid-bg {
+      position: fixed; inset: 0; z-index: -1; opacity: 0.3;
+      background-image: linear-gradient(rgba(59,130,246,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.1) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .login-section {
+      position: fixed; inset: 0; display: flex; justify-content: center; align-items: center;
+      opacity: 0; transform: translateY(20px); transition: 0.5s ease;
+    }
+    .login-section.active { opacity: 1; transform: translateY(0); }
+    .hidden { display: none; }
+
+    .login-card {
+      background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);
+      padding: 40px; border-radius: 16px; width: 400px; backdrop-filter: blur(10px);
+      box-shadow: 0 0 60px rgba(59, 130, 246, 0.3);
+    }
+
+    .input-group { margin-bottom: 15px; text-align: left; }
+    .input-group label {
+      display: block; font-size: 0.75rem; color: #94a3b8; font-family: 'JetBrains Mono'; margin-bottom: 5px; letter-spacing: 1px;
+    }
+    .input-group input {
+      width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+      color: white; border-radius: 6px; outline: none; transition: 0.3s; font-family: 'Inter';
+    }
+    .input-group input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+  </style>
+</body>
+</html>

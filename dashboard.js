@@ -40,7 +40,7 @@ window.onload = () => {
     initSysBattery(); 
     initWeather();
     
-    // Simulasi berjalan setiap 1.5 detik
+    // Simulasi aktif setiap 1.5 detik
     setInterval(tickSimulation, 1500); 
     setInterval(updateClock, 1000);
     
@@ -55,11 +55,11 @@ function loadData() {
     const savedData = localStorage.getItem('fleetData');
     if (savedData) {
         state.workers = JSON.parse(savedData);
-        // Inject default values & pastikan koordinat ada
+        // Inject default values & reset lokasi dummy
         state.workers.forEach(w => { 
             if (w.hum === undefined) w.hum = Math.floor(40 + Math.random() * 40);
             if (w.shock === undefined) w.shock = false;
-            // Reset lokasi dummy biar ngumpul di area kampus/bojongsoang awalnya
+            // Reset lokasi dummy agar berkumpul di area kampus awalnya
             if (!w.isReal && (w.lat === undefined || w.lng === undefined)) {
                 w.lat = -6.9744 + (Math.random()-0.5)*0.02;
                 w.lng = 107.6303 + (Math.random()-0.5)*0.02;
@@ -98,7 +98,7 @@ function createWorkerObj(idNum, nameOverride = null, isReal = false) {
         hum: Math.floor(50 + Math.random() * 40), 
         batt: Math.floor(60 + Math.random() * 40),
         shock: false, 
-        lat: -6.9744 + (Math.random()-0.5)*0.02, // Sebar di sekitar Telkom
+        lat: -6.9744 + (Math.random()-0.5)*0.02, 
         lng: 107.6303 + (Math.random()-0.5)*0.02,
         status: 'NORMAL', history: [], isReal: isReal
     };
@@ -111,7 +111,7 @@ async function fetchRealData() {
     try {
         const endTs = Date.now();
         const startTs = endTs - (24 * 60 * 60 * 1000); 
-        // URL Request: Menggunakan "Shock" (Huruf Besar)
+        // Menggunakan key "Shock" (Kapital) sesuai instruksi terakhir
         const url = `https://${TB_HOST}/api/plugins/telemetry/DEVICE/${TARGET_DEVICE_ID}/values/timeseries?keys=temperature,tempreture,batteryLevel,battery,latitude,longitude,humidity,Shock&startTs=${startTs}&endTs=${endTs}`;
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json', 'X-Authorization': `Bearer ${userJwtToken}` }});
 
@@ -141,7 +141,7 @@ function updateRealWorkerUI(data) {
     else if (data.battery?.length) valBatt = data.battery[0].value;
     if (valBatt !== null) worker.batt = Math.round(valBatt);
 
-    // 4. Loc (Real GPS)
+    // 4. Loc
     if (data.latitude && !isNaN(data.latitude[0].value)) worker.lat = parseFloat(data.latitude[0].value);
     if (data.longitude && !isNaN(data.longitude[0].value)) worker.lng = parseFloat(data.longitude[0].value);
 
@@ -170,35 +170,34 @@ function updateRealWorkerUI(data) {
 }
 
 /* =========================================
-   6. SIMULATION LOGIC (ACTIVE MOVEMENT!)
+   6. SIMULATION LOGIC (ACTIVE MOVEMENT)
    ========================================= */
 function tickSimulation() {
     state.workers.forEach(w => {
-        if(w.isReal) return; // Jangan sentuh data asli
+        if(w.isReal) return; 
 
-        // 1. Simulasi Suhu (Naik Turun)
+        // 1. Temp Dinamis
         w.temp = Math.max(34, Math.min(43, parseFloat(w.temp) + (Math.random()-0.5)*1.5)).toFixed(1);
         
-        // 2. Simulasi Humidity (Lebih Dinamis)
+        // 2. Hum Dinamis
         if(Math.random() > 0.6) {
             w.hum = Math.max(30, Math.min(99, w.hum + (Math.random() > 0.5 ? 2 : -2)));
         }
 
-        // 3. Simulasi Baterai (Turun pelan)
+        // 3. Batt Turun Pelan
         if (Math.random() > 0.98 && w.batt > 0) w.batt--;
         
-        // 4. Simulasi PERGERAKAN LOKASI (Jalan-jalan)
-        // Koordinat bergeser sedikit setiap tick (Random Walk)
+        // 4. PERGERAKAN LOKASI (Jalan-jalan Random)
         w.lat += (Math.random() - 0.5) * 0.00015; 
         w.lng += (Math.random() - 0.5) * 0.00015;
 
-        // 5. Simulasi SHOCK (Kadang-kadang jatuh)
-        if (Math.random() > 0.992) { // 0.8% Chance per tick
+        // 5. Shock Simulation (Jarang terjadi)
+        if (Math.random() > 0.992) { 
             w.shock = true; 
-            setTimeout(() => { w.shock = false; }, 6000); // Shock bertahan 6 detik
+            setTimeout(() => { w.shock = false; }, 6000); 
         }
 
-        // Update Status
+        // Status Update
         if (w.shock) w.status = 'CRITICAL';
         else if (w.temp > 40) w.status = 'CRITICAL';
         else if (w.temp > 37.5) w.status = 'WARNING';
@@ -207,14 +206,12 @@ function tickSimulation() {
         w.history.push(w.temp); if (w.history.length > 20) w.history.shift();
     });
 
-    // Update Tampilan
     if (state.view === 'GRID') {
         const start = (state.page - 1) * ITEMS_PER_PAGE;
         const end = start + ITEMS_PER_PAGE;
         state.filtered.slice(start, end).forEach(w => updateCardUI(w));
     } else if (state.view === 'MAP' && mapMain) {
-        // Update marker di peta biar kelihatan bergerak
-        updateMapMarkers();
+        updateMapMarkers(); // Update posisi di peta
     }
     updateStats(); 
 }
@@ -297,6 +294,7 @@ function renderGrid() {
         const tempColor = w.status === 'CRITICAL' ? '#ef4444' : (w.status === 'WARNING' ? '#f59e0b' : '#f8fafc');
         const battColor = w.batt < 20 ? '#ef4444' : '#10b981';
 
+        // 2x2 GRID CARD LAYOUT
         div.innerHTML = `
             <div class="card-header"><span class="card-id">${w.id} ${w.isReal ? '<i class="fa-solid fa-wifi" style="color:var(--success); margin-left:5px;"></i>' : ''}</span><button class="btn-delete" onclick="deleteWorker('${w.id}', event)"><i class="fa-solid fa-trash"></i></button></div>
             <div class="card-name">${w.name}</div>
@@ -385,7 +383,42 @@ function updateDetailModal() {
 }
 
 /* =========================================
-   9. HELPER FUNCTIONS
+   9. FUNGSI EXPORT EXCEL (SUDAH DIPERBAIKI)
+   ========================================= */
+function exportData() {
+    // 1. Cek apakah library XLSX sudah dimuat
+    if (typeof XLSX === 'undefined') {
+        alert('Library Excel belum siap! Pastikan internet nyala dan script XLSX ada di HTML.');
+        return;
+    }
+
+    // 2. Siapkan Data yang mau di-export (Mapping agar rapi)
+    const dataToExport = state.workers.map(w => ({
+        "ID": w.id,
+        "Name": w.name,
+        "Status": w.status,
+        "Temp (°C)": w.temp,
+        "Hum (%)": w.hum,
+        "Batt (%)": w.batt,
+        "Shock": w.shock ? "FALL DETECTED" : "SAFE", // Konversi boolean ke teks
+        "Latitude": w.lat,
+        "Longitude": w.lng,
+        "Last Update": new Date().toLocaleTimeString()
+    }));
+
+    // 3. Buat Worksheet
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+    // 4. Buat Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fleet Report");
+
+    // 5. Download File
+    XLSX.writeFile(wb, `SmartFleet_Report_${Date.now()}.xlsx`);
+}
+
+/* =========================================
+   10. HELPER FUNCTIONS
    ========================================= */
 function handleSort() { state.sort = document.getElementById('sortSelect').value; applyFilterAndSort(); }
 function setFilter(type) { state.filter = type; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); document.querySelector(`[data-filter="${type}"]`).classList.add('active'); applyFilterAndSort(); }
@@ -411,6 +444,5 @@ function initWeather() {
 }
 function initSysBattery() { if('getBattery' in navigator) navigator.getBattery().then(b => document.getElementById('sysBatt').innerHTML = `<i class="fa-solid fa-plug"></i> ${Math.floor(b.level*100)}%`); }
 function toggleTheme() { document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); }
-function exportData() { alert('Exporting Data...'); }
 function showMapPopup(w) { /* Popup Logic Already in updateMapMarkers */ }
 function closeMapPopup() { document.getElementById('mapPopup').classList.remove('show'); }

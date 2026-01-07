@@ -101,7 +101,7 @@
            <div id="mpName" style="margin-bottom:15px; font-weight:600;">Name</div>
            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
               <span><i class="fa-solid fa-temperature-half" style="color:#ef4444"></i> <b id="mpTemp">--</b></span>
-              <span><i class="fa-solid fa-battery-half" style="color:#10b981"></i> <b id="mpBatt">--</b></span>
+              <span><i class="fa-solid fa-droplet" style="color:#3b82f6"></i> <b id="mpHum">--</b></span>
            </div>
         </div>
       </div>
@@ -134,7 +134,7 @@
 
   <div class="modal-overlay" id="detailModal">
     <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
          <div>
            <h2 id="mId" style="font-family:'JetBrains Mono'; color:var(--text-muted); font-size:1rem; margin-bottom:5px;">ID</h2>
            <div id="mName" style="font-weight:700; font-size:1.5rem;">Name</div>
@@ -142,27 +142,35 @@
          <button onclick="closeDetailModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:2rem;">&times;</button>
       </div>
       
-      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:30px;">
-         <div>
-           <canvas id="mChart" style="height:250px; width:100%; margin-bottom:20px;"></canvas>
-           <div style="display:flex; gap:20px;">
-             <div class="stat-card" style="flex:1;">
-               <span class="stat-title">Temp</span>
-               <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                  <i class="fa-solid fa-temperature-half" style="color:#ef4444"></i>
-                  <span class="stat-value" id="mTemp">--</span>
-               </div>
+      <div class="modal-stats-grid">
+         <div class="stat-box">
+             <div class="stat-label">TEMP</div>
+             <div class="stat-value">
+                 <i class="fa-solid fa-temperature-half" style="color:#ef4444"></i> 
+                 <span id="mTemp">--</span>
              </div>
-             <div class="stat-card" style="flex:1;">
-               <span class="stat-title">Battery</span>
-               <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
-                  <i class="fa-solid fa-battery-half" style="color:#10b981"></i>
-                  <span class="stat-value" id="mBatt">--</span>
-               </div>
-             </div>
-           </div>
          </div>
-         <div style="height:350px; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--border);">
+         <div class="stat-box">
+             <div class="stat-label">HUMIDITY</div>
+             <div class="stat-value">
+                 <i class="fa-solid fa-droplet" style="color:#3b82f6"></i> 
+                 <span id="mHum">--</span>
+             </div>
+         </div>
+         <div class="stat-box">
+             <div class="stat-label">BATTERY</div>
+             <div class="stat-value">
+                 <i class="fa-solid fa-battery-half" style="color:#10b981"></i>
+                 <span id="mBatt">--</span>
+             </div>
+         </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:30px; margin-top:20px;">
+         <div>
+           <canvas id="mChart" style="height:250px; width:100%;"></canvas>
+         </div>
+         <div style="height:250px; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--border);">
            <div id="detailMap" style="width:100%; height:100%;"></div>
          </div>
       </div>

@@ -101,7 +101,7 @@
            <div id="mpName" style="margin-bottom:15px; font-weight:600;">Name</div>
            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
               <span><i class="fa-solid fa-temperature-half" style="color:#ef4444"></i> <b id="mpTemp">--</b></span>
-              <span><i class="fa-solid fa-droplet" style="color:#3b82f6"></i> <b id="mpHum">--</b></span>
+              <span><i class="fa-solid fa-person-falling-burst" style="color:var(--warning)"></i> <b id="mpShock">--</b></span>
            </div>
         </div>
       </div>
@@ -164,6 +164,13 @@
                  <span id="mBatt">--</span>
              </div>
          </div>
+         <div class="stat-box">
+             <div class="stat-label">MOVEMENT</div>
+             <div class="stat-value">
+                 <i class="fa-solid fa-person-falling-burst" style="color:var(--warning)"></i>
+                 <span id="mShock">SAFE</span>
+             </div>
+         </div>
       </div>
 
       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:30px; margin-top:20px;">
@@ -195,8 +202,8 @@
         <h3 style="color:var(--text-main); margin-bottom:5px;">Core Capabilities</h3>
         <p>
           • <strong>Telemetry:</strong> Live temperature and battery health monitoring.<br>
-          • <strong>Geofencing:</strong> Precision GPS tracking within the Bojongsoang perimeter.<br>
-          • <strong>Safety Protocols:</strong> Automated critical status detection and alerting.
+          • <strong>Safety:</strong> Fall detection using MPU6050 Inertial Measurement Unit.<br>
+          • <strong>Geofencing:</strong> Precision GPS tracking within the Bojongsoang perimeter.
         </p>
       </div>
 

@@ -40,6 +40,7 @@ window.onload = () => {
     initSysBattery(); 
     initWeather();
     
+    // Simulasi berjalan setiap 1.5 detik
     setInterval(tickSimulation, 1500); 
     setInterval(updateClock, 1000);
     
@@ -54,8 +55,16 @@ function loadData() {
     const savedData = localStorage.getItem('fleetData');
     if (savedData) {
         state.workers = JSON.parse(savedData);
-        // Pastikan Humidity ada untuk data lama
-        state.workers.forEach(w => { if (w.hum === undefined) w.hum = Math.floor(40 + Math.random() * 40); });
+        // Inject default values & pastikan koordinat ada
+        state.workers.forEach(w => { 
+            if (w.hum === undefined) w.hum = Math.floor(40 + Math.random() * 40);
+            if (w.shock === undefined) w.shock = false;
+            // Reset lokasi dummy biar ngumpul di area kampus/bojongsoang awalnya
+            if (!w.isReal && (w.lat === undefined || w.lng === undefined)) {
+                w.lat = -6.9744 + (Math.random()-0.5)*0.02;
+                w.lng = 107.6303 + (Math.random()-0.5)*0.02;
+            }
+        });
         
         let maxId = 100;
         state.workers.forEach(w => {
@@ -88,8 +97,9 @@ function createWorkerObj(idNum, nameOverride = null, isReal = false) {
         temp: (36 + Math.random()).toFixed(1),
         hum: Math.floor(50 + Math.random() * 40), 
         batt: Math.floor(60 + Math.random() * 40),
-        lat: -6.9744 + (Math.random()-0.5)*0.01,
-        lng: 107.6303 + (Math.random()-0.5)*0.01,
+        shock: false, 
+        lat: -6.9744 + (Math.random()-0.5)*0.02, // Sebar di sekitar Telkom
+        lng: 107.6303 + (Math.random()-0.5)*0.02,
         status: 'NORMAL', history: [], isReal: isReal
     };
 }
@@ -101,7 +111,8 @@ async function fetchRealData() {
     try {
         const endTs = Date.now();
         const startTs = endTs - (24 * 60 * 60 * 1000); 
-        const url = `https://${TB_HOST}/api/plugins/telemetry/DEVICE/${TARGET_DEVICE_ID}/values/timeseries?keys=temperature,tempreture,batteryLevel,battery,latitude,longitude,humidity&startTs=${startTs}&endTs=${endTs}`;
+        // URL Request: Menggunakan "Shock" (Huruf Besar)
+        const url = `https://${TB_HOST}/api/plugins/telemetry/DEVICE/${TARGET_DEVICE_ID}/values/timeseries?keys=temperature,tempreture,batteryLevel,battery,latitude,longitude,humidity,Shock&startTs=${startTs}&endTs=${endTs}`;
         const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json', 'X-Authorization': `Bearer ${userJwtToken}` }});
 
         if (response.ok) {
@@ -130,14 +141,24 @@ function updateRealWorkerUI(data) {
     else if (data.battery?.length) valBatt = data.battery[0].value;
     if (valBatt !== null) worker.batt = Math.round(valBatt);
 
-    // 4. Loc
+    // 4. Loc (Real GPS)
     if (data.latitude && !isNaN(data.latitude[0].value)) worker.lat = parseFloat(data.latitude[0].value);
     if (data.longitude && !isNaN(data.longitude[0].value)) worker.lng = parseFloat(data.longitude[0].value);
 
-    // Status
+    // 5. SHOCK (Key: Shock)
+    if (data.Shock && data.Shock.length > 0) {
+        let sVal = data.Shock[0].value;
+        worker.shock = (sVal === true || sVal === 'true');
+    }
+
+    // Status Logic
     worker.status = 'NORMAL';
-    if (worker.temp > 40) worker.status = 'CRITICAL';
-    else if (worker.temp > 37.5) worker.status = 'WARNING';
+    if (worker.shock) {
+        worker.status = 'CRITICAL';
+    } else {
+        if (worker.temp > 40) worker.status = 'CRITICAL';
+        else if (worker.temp > 37.5) worker.status = 'WARNING';
+    }
 
     worker.name = "Tengku Arya (ONLINE)";
     worker.history.push(worker.temp);
@@ -149,27 +170,50 @@ function updateRealWorkerUI(data) {
 }
 
 /* =========================================
-   6. SIMULATION LOGIC
+   6. SIMULATION LOGIC (ACTIVE MOVEMENT!)
    ========================================= */
 function tickSimulation() {
     state.workers.forEach(w => {
-        if(w.isReal) return; 
+        if(w.isReal) return; // Jangan sentuh data asli
+
+        // 1. Simulasi Suhu (Naik Turun)
         w.temp = Math.max(34, Math.min(43, parseFloat(w.temp) + (Math.random()-0.5)*1.5)).toFixed(1);
-        if(Math.random() > 0.7) w.hum = Math.max(30, Math.min(99, w.hum + (Math.random()>0.5?1:-1)));
+        
+        // 2. Simulasi Humidity (Lebih Dinamis)
+        if(Math.random() > 0.6) {
+            w.hum = Math.max(30, Math.min(99, w.hum + (Math.random() > 0.5 ? 2 : -2)));
+        }
+
+        // 3. Simulasi Baterai (Turun pelan)
         if (Math.random() > 0.98 && w.batt > 0) w.batt--;
         
-        if (w.temp > 40) w.status = 'CRITICAL';
+        // 4. Simulasi PERGERAKAN LOKASI (Jalan-jalan)
+        // Koordinat bergeser sedikit setiap tick (Random Walk)
+        w.lat += (Math.random() - 0.5) * 0.00015; 
+        w.lng += (Math.random() - 0.5) * 0.00015;
+
+        // 5. Simulasi SHOCK (Kadang-kadang jatuh)
+        if (Math.random() > 0.992) { // 0.8% Chance per tick
+            w.shock = true; 
+            setTimeout(() => { w.shock = false; }, 6000); // Shock bertahan 6 detik
+        }
+
+        // Update Status
+        if (w.shock) w.status = 'CRITICAL';
+        else if (w.temp > 40) w.status = 'CRITICAL';
         else if (w.temp > 37.5) w.status = 'WARNING';
         else w.status = 'NORMAL';
         
         w.history.push(w.temp); if (w.history.length > 20) w.history.shift();
     });
 
+    // Update Tampilan
     if (state.view === 'GRID') {
         const start = (state.page - 1) * ITEMS_PER_PAGE;
         const end = start + ITEMS_PER_PAGE;
         state.filtered.slice(start, end).forEach(w => updateCardUI(w));
     } else if (state.view === 'MAP' && mapMain) {
+        // Update marker di peta biar kelihatan bergerak
         updateMapMarkers();
     }
     updateStats(); 
@@ -180,7 +224,6 @@ function updateCardUI(w) {
     if (card) {
         card.className = `card ${w.status}`;
         
-        // Update 3 Metrics di Card Grid
         const vt = document.getElementById(`vt-${w.id}`);
         if(vt) { vt.innerText = w.temp + '°C'; vt.style.color = w.status === 'CRITICAL' ? '#ef4444' : (w.status === 'WARNING' ? '#f59e0b' : '#f8fafc'); }
         
@@ -189,6 +232,21 @@ function updateCardUI(w) {
 
         const vb = document.getElementById(`vb-${w.id}`);
         if(vb) vb.innerText = w.batt + '%';
+
+        const vs = document.getElementById(`vs-${w.id}`);
+        if(vs) {
+            if(w.shock) {
+                vs.innerHTML = 'FALL!';
+                vs.style.color = '#ef4444';
+                vs.parentElement.querySelector('i').className = "fa-solid fa-person-falling-burst";
+                vs.parentElement.querySelector('i').style.color = "#ef4444";
+            } else {
+                vs.innerHTML = 'SAFE';
+                vs.style.color = '#10b981';
+                vs.parentElement.querySelector('i').className = "fa-solid fa-person-walking";
+                vs.parentElement.querySelector('i').style.color = "#10b981";
+            }
+        }
         
         const nameEl = card.querySelector('.card-name');
         if(nameEl && nameEl.innerText !== w.name) nameEl.innerText = w.name;
@@ -239,7 +297,6 @@ function renderGrid() {
         const tempColor = w.status === 'CRITICAL' ? '#ef4444' : (w.status === 'WARNING' ? '#f59e0b' : '#f8fafc');
         const battColor = w.batt < 20 ? '#ef4444' : '#10b981';
 
-        // HTML CARD UPDATE (3 Kolom: Temp, Hum, Batt)
         div.innerHTML = `
             <div class="card-header"><span class="card-id">${w.id} ${w.isReal ? '<i class="fa-solid fa-wifi" style="color:var(--success); margin-left:5px;"></i>' : ''}</span><button class="btn-delete" onclick="deleteWorker('${w.id}', event)"><i class="fa-solid fa-trash"></i></button></div>
             <div class="card-name">${w.name}</div>
@@ -247,6 +304,7 @@ function renderGrid() {
                 <div class="metric"><div class="metric-icon icon-temp"><i class="fa-solid fa-temperature-half"></i></div><div class="metric-info"><span class="metric-val" id="vt-${w.id}" style="color:${tempColor}">${w.temp}°C</span><span class="metric-lbl">TEMP</span></div></div>
                 <div class="metric"><div class="metric-icon" style="color:#3b82f6"><i class="fa-solid fa-droplet"></i></div><div class="metric-info"><span class="metric-val" id="vh-${w.id}">${w.hum}%</span><span class="metric-lbl">HUM</span></div></div>
                 <div class="metric"><div class="metric-icon icon-batt"><i class="fa-solid fa-battery-bolt"></i></div><div class="metric-info"><span class="metric-val" id="vb-${w.id}" style="color:${battColor}">${w.batt}%</span><span class="metric-lbl">BATT</span></div></div>
+                <div class="metric"><div class="metric-icon"><i class="fa-solid ${w.shock ? 'fa-person-falling-burst' : 'fa-person-walking'}" style="color:${w.shock ? '#ef4444' : '#10b981'}"></i></div><div class="metric-info"><span class="metric-val" id="vs-${w.id}" style="color:${w.shock ? '#ef4444' : '#10b981'}">${w.shock ? 'FALL!' : 'SAFE'}</span><span class="metric-lbl">STATUS</span></div></div>
             </div>`;
         grid.appendChild(div);
     });
@@ -254,7 +312,7 @@ function renderGrid() {
 }
 
 /* =========================================
-   8. MAPS & MODALS (CLEAN VERSION)
+   8. MAPS & MODALS
    ========================================= */
 function initMap() {
     mapMain = L.map('mainMap').setView([-6.9744, 107.6303], 15);
@@ -267,7 +325,7 @@ function updateMapMarkers() {
     state.filtered.forEach(w => {
         const color = w.status === 'CRITICAL' ? '#ef4444' : (w.status === 'WARNING' ? '#f59e0b' : '#10b981');
         const m = L.circleMarker([w.lat, w.lng], { radius: w.isReal?10:6, fillColor:color, color:'#fff', weight:2, fillOpacity:1 });
-        m.bindPopup(`<b>${w.name}</b><br>Temp: ${w.temp}°C<br>Hum: ${w.hum}%`);
+        m.bindPopup(`<b>${w.name}</b><br>Temp: ${w.temp}°C<br>Status: ${w.shock ? 'FALL!' : 'OK'}`);
         markerLayer.addLayer(m);
     });
 }
@@ -277,12 +335,18 @@ function openDetailModal(id) {
     const w = state.workers.find(x => x.id === id);
     document.getElementById('detailModal').classList.add('open');
 
-    // Update Angka di HTML Modal (HTML sudah siap dari dashboard.html)
     document.getElementById('mId').innerText = w.id;
     document.getElementById('mName').innerText = w.name;
     document.getElementById('mTemp').innerText = w.temp + '°C';
     document.getElementById('mHum').innerText = w.hum + '%'; 
     document.getElementById('mBatt').innerText = w.batt + '%';
+    
+    const mShock = document.getElementById('mShock');
+    if(w.shock) {
+        mShock.innerText = "FALL DETECTED!"; mShock.style.color = "#ef4444";
+    } else {
+        mShock.innerText = "SAFE"; mShock.style.color = "#10b981";
+    }
 
     if(chartInstance) chartInstance.destroy();
     const ctx = document.getElementById('mChart').getContext('2d');
@@ -309,6 +373,14 @@ function updateDetailModal() {
     document.getElementById('mTemp').innerText = w.temp + '°C';
     document.getElementById('mHum').innerText = w.hum + '%'; 
     document.getElementById('mBatt').innerText = w.batt + '%';
+    
+    const mShock = document.getElementById('mShock');
+    if(w.shock) {
+        mShock.innerText = "FALL DETECTED!"; mShock.style.color = "#ef4444";
+    } else {
+        mShock.innerText = "SAFE"; mShock.style.color = "#10b981";
+    }
+
     if(chartInstance) { chartInstance.data.datasets[0].data = w.history; chartInstance.update('none'); }
 }
 

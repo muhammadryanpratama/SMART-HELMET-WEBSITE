@@ -158,7 +158,7 @@ aside {
 .btn-add:hover { background: var(--success); color: #000; }
 
 /* =========================================
-   5. WORKER CARDS (UPDATED FOR 4 METRICS)
+   5. WORKER CARDS (4 METRICS)
    ========================================= */
 .grid-container {
   flex: 1; overflow-y: auto; 
@@ -272,7 +272,7 @@ aside {
    ========================================= */
 .modal-stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 Kolom: Temp, Hum, Batt, Shock */
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 Kolom Rata */
     gap: 15px;
     margin-bottom: 20px;
     width: 100%;

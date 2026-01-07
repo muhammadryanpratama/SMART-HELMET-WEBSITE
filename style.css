@@ -158,11 +158,11 @@ aside {
 .btn-add:hover { background: var(--success); color: #000; }
 
 /* =========================================
-   5. WORKER CARDS
+   5. WORKER CARDS (UPDATED FOR 4 METRICS)
    ========================================= */
 .grid-container {
   flex: 1; overflow-y: auto; 
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px; padding-right: 6px; padding-bottom: 20px; align-content: start;
 }
 
@@ -198,6 +198,7 @@ aside {
 
 .card-name { font-weight: 600; font-size: 1rem; margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
 
+/* GRID 2x2 FOR METRICS */
 .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .metric { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 8px; }
 .metric-icon { width: 24px; font-size: 0.9rem; text-align: center; }
@@ -267,34 +268,11 @@ aside {
 .modal-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
 
 /* =========================================
-   8. WELCOME PAGE
-   ========================================= */
-body.welcome-page {
-  background: #020617; justify-content: center; align-items: center;
-  background-image: 
-    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-.hero-content { text-align: center; z-index: 2; }
-.logo-big { font-size: 6rem; color: var(--primary); margin-bottom: 25px; animation: float 6s infinite ease-in-out; }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-
-.hero-title { font-size: 3.5rem; font-weight: 800; letter-spacing: 4px; color: white; margin-bottom: 10px; text-shadow: 0 0 30px rgba(59, 130, 246, 0.3); }
-.typing-container { font-family: 'JetBrains Mono'; color: var(--primary); font-size: 1.1rem; margin-bottom: 50px; min-height: 28px; }
-.enter-btn {
-  background: transparent; border: 1px solid var(--primary); color: var(--primary);
-  padding: 18px 60px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.3s;
-  letter-spacing: 2px; position: relative; overflow: hidden;
-}
-.enter-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 50px var(--primary); transform: scale(1.05); }
-
-/* =========================================
-   9. CUSTOM CSS (MODAL 3 KOLOM)
+   8. CUSTOM CSS (MODAL 4 KOLOM)
    ========================================= */
 .modal-stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 Kolom: Temp, Hum, Batt, Shock */
     gap: 15px;
     margin-bottom: 20px;
     width: 100%;
@@ -316,9 +294,9 @@ body.welcome-page {
 }
 
 .stat-value {
-    font-size: 1.4rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 8px;
+    font-size: 1.2rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 8px;
 }
 
-@media (max-width: 600px) {
-    .modal-stats-grid { grid-template-columns: 1fr; }
+@media (max-width: 650px) {
+    .modal-stats-grid { grid-template-columns: 1fr 1fr; } /* 2x2 di HP */
 }
